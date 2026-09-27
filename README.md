@@ -1,5 +1,9 @@
 # Day 11 — Controlled Agent Security (2026)
 
+**Học viên:** Nguyễn Văn Duy · **MSSV:** `2A202602729`
+
+**Bài làm:** Guardrails, HITL & Responsible AI — VinBank defense-in-depth
+
 > 👤 **Hình thức:** bài tập **cá nhân** (1 người / 1 MSSV).  
 > ⏰ **Lab:** ~130' + Setup 30' · **Hạn nộp:** **23h59 cùng ngày làm Lab** (ICT / GMT+7).
 > 📂 **Repo nộp:** `K4-L3-DAY11-<HoVaTen>-<MSSV>-Guardrails-HITL-Responsible-AI` (xem `[SUBMISSION.md](SUBMISSION.md)`)
@@ -18,7 +22,21 @@
 | `[schemas/results.schema.json](schemas/results.schema.json)` | Schema bắt buộc của `outputs/results.json`                           |
 
 
-Slide trên lớp: `[Slide_Lab_Day11.html](Slide_Lab_Day11.html)`.
+Slide trên lớp: [`Slide_Lab_Day11.html`](Slide_Lab_Day11.html).
+
+### Chạy bài và xem giao diện trực quan
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python src/main.py --part 2  # CP2: input/output guardrails
+python src/main.py --part 5  # CP3: sinh results, audit, metrics
+python src/main.py --part 1  # CP4: Red + Guards, cần API key
+python -m http.server 8765 --bind 127.0.0.1
+```
+
+Sau đó mở `http://127.0.0.1:8765/visualizer/`. Giao diện dùng chính
+`outputs/results.json` và `outputs/audit_log.json`, đồng thời mô phỏng từng bước
+Rate limiter → Input guardrail → LLM → Output guardrail → Audit → Egress.
 
 ---
 
@@ -26,7 +44,7 @@ Slide trên lớp: `[Slide_Lab_Day11.html](Slide_Lab_Day11.html)`.
 
 ## 1. Bài toán
 
-VinBank chatbot đọc email/RAG và có thể đề xuất hành động ngân hàng. Nội dung ngoài là **data**, không phải instruction. Bạn kiểm soát đường đi **source → model → tool/egress**.
+VinBank chatbot đọc email/RAG và có thể đề xuất hành động ngân hàng. Nội dung ngoài là **data**, không phải instruction. Hệ thống phải kiểm soát đường đi **source → model → tool/egress**.
 
 Agent **unsafe** / **protected** / **guards** đều nhúng secret giả trong system prompt (cần bảo vệ):
 
@@ -45,7 +63,7 @@ User → Rate Limiter → Input Guardrails → LLM → Output Guardrails
 ```
 
 
-| Đã có sẵn                                                    | Bạn tự làm            | Hệ thống sinh ra                                 |
+| Đã có sẵn                                                    | Phần cần tự làm       | Hệ thống sinh ra                                 |
 | ------------------------------------------------------------ | --------------------- | ------------------------------------------------ |
 | Starter `src/guardrails/`, `src/assignment/`, `src/attacks/` | Theo Checkpoint 2–4   | `outputs/results.json`, `attack_results.json`, … |
 | `create_unsafe_agent()` / `create_guards_agent()`            | Không sửa secret      | —                                                |

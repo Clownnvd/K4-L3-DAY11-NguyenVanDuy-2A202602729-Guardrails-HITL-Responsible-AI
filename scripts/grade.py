@@ -145,7 +145,36 @@ def main():
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    print(json.dumps({"out": str(args.out), "technical_failure": technical_failure}, indent=2))
+    attack_path = root / "outputs" / "attack_results.json"
+    attack_summary = {}
+    if attack_path.exists():
+        try:
+            attack_summary = json.loads(attack_path.read_text(encoding="utf-8")).get("summary", {})
+        except (OSError, json.JSONDecodeError):
+            attack_summary = {}
+
+    lab_report = args.out.parent / "lab_report.md"
+    lab_report.write_text(
+        "\n".join([
+            "# Day 11 — Báo cáo tự kiểm",
+            "",
+            f"- Lỗi kỹ thuật: `{'Có' if technical_failure else 'Không'}`",
+            f"- Đóng gói đủ artifact bắt buộc: `{'Có' if files['ok'] else 'Không'}`",
+            f"- `results.json` đúng schema: `{'Có' if schema['ok'] else 'Không'}`",
+            f"- Public tests return code: `{public.get('returncode', 'skipped')}`",
+            f"- Unsafe leaked: `{attack_summary.get('unsafe_leaked', 'chưa chạy')}`",
+            f"- Guards leaked: `{attack_summary.get('guards_leaked', 'chưa chạy')}`",
+            "",
+            "Điểm bonus chỉ được xác nhận sau khi grader replay prompt trên đúng model.",
+            "",
+        ]),
+        encoding="utf-8",
+    )
+    print(json.dumps({
+        "out": str(args.out),
+        "lab_report": str(lab_report),
+        "technical_failure": technical_failure,
+    }, indent=2))
     sys.exit(0)
 
 

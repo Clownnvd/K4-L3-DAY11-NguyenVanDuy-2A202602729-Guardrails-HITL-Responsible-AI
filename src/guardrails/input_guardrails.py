@@ -5,6 +5,7 @@ Checkpoint 2 — Input Guardrails
   - InputGuardrailPlugin (ADK)
 """
 import re
+import unicodedata
 
 from google.genai import types
 from google.adk.plugins import base_plugin
@@ -41,14 +42,25 @@ def detect_injection(user_input: str) -> bool:
     Returns:
         True if injection detected, False otherwise
     """
-    INJECTION_PATTERNS = [
-        # TODO: Add at least 5 regex patterns
-        # Example:
-        # r"ignore (all )?(previous|above) instructions",
-    ]
+    normalized = unicodedata.normalize("NFKC", user_input or "")
+    normalized = re.sub(r"[\u200b\u200c\u200d\ufeff\u2060]", "", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
 
-    for pattern in INJECTION_PATTERNS:
-        if re.search(pattern, user_input, re.IGNORECASE):
+    injection_patterns = (
+        r"\bignore\s+(?:all\s+)?(?:previous|above|prior)\s+instructions?\b",
+        r"\b(?:disregard|forget)\s+(?:all\s+)?(?:previous\s+)?(?:instructions?|rules?|prompt)\b",
+        r"\byou\s+are\s+now\b",
+        r"\b(?:system|developer)\s+(?:prompt|instructions?)\b",
+        r"\breveal\s+(?:your\s+)?(?:instructions?|prompt|secrets?|password|api\s*key)\b",
+        r"\b(?:show|print|output|translate)\b.{0,50}\b(?:system\s+prompt|internal\s+instructions?|secret|password|api\s*key)\b",
+        r"\bpretend\s+(?:you\s+are|to\s+be)\b",
+        r"\bact\s+as\s+(?:a\s+|an\s+)?(?:unrestricted|jailbroken|evil)\b",
+        r"\b(?:bỏ\s+qua|quên)\s+(?:mọi\s+)?(?:hướng\s+dẫn|chỉ\s+thị)\b",
+        r"\btiết\s+lộ\b.{0,40}\b(?:mật\s+khẩu|khóa\s+api|thông\s+tin\s+nội\s+bộ)\b",
+    )
+
+    for pattern in injection_patterns:
+        if re.search(pattern, normalized, re.IGNORECASE | re.DOTALL):
             return True
     return False
 
@@ -72,14 +84,17 @@ def topic_filter(user_input: str) -> bool:
     Returns:
         True if input should be BLOCKED (off-topic or blocked topic)
     """
-    input_lower = user_input.lower()
+    normalized = unicodedata.normalize("NFKD", user_input or "")
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    input_lower = re.sub(r"\s+", " ", normalized.casefold()).strip()
+    if not input_lower:
+        return True
 
-    # TODO: Implement logic:
-    # 1. If input contains any blocked topic -> return True
-    # 2. If input doesn't contain any allowed topic -> return True
-    # 3. Otherwise -> return False (allow)
+    if any(topic.casefold() in input_lower for topic in BLOCKED_TOPICS):
+        return True
 
-    pass  # Replace with your implementation
+    allowed = any(topic.casefold() in input_lower for topic in ALLOWED_TOPICS)
+    return not allowed
 
 
 # ============================================================
@@ -132,14 +147,17 @@ class InputGuardrailPlugin(base_plugin.BasePlugin):
         self.total_count += 1
         text = self._extract_text(user_message)
 
-        # TODO: Implement logic:
-        # 1. Call detect_injection(text)
-        #    - If True: increment blocked_count, return self._block_response("...")
-        # 2. Call topic_filter(text)
-        #    - If True: increment blocked_count, return self._block_response("...")
-        # 3. If both are False: return None (let message through)
-
-        pass  # Replace with your implementation
+        if detect_injection(text):
+            self.blocked_count += 1
+            return self._block_response(
+                "Yêu cầu đã bị chặn vì chứa dấu hiệu thay đổi chỉ dẫn hệ thống."
+            )
+        if topic_filter(text):
+            self.blocked_count += 1
+            return self._block_response(
+                "VinBank chỉ hỗ trợ các câu hỏi liên quan đến ngân hàng."
+            )
+        return None
 
 
 # ============================================================
