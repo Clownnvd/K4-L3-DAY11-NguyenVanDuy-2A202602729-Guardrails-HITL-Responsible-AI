@@ -17,6 +17,7 @@ from google.genai import types
 from assignment.rate_limiter import RateLimitPlugin
 from assignment.audit_log import AuditLogPlugin
 from assignment.monitoring import MonitoringAlert
+from core.config import get_blue_model, get_blue_runtime_model
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -209,6 +210,9 @@ async def run_assignment_suite(pipeline, student_id: str) -> dict:
     result = {
         "student_id": student_id,
         "framework": "google-adk",
+        "blue_provider": "openrouter",
+        "blue_model": get_blue_model(),
+        "blue_runtime_model": get_blue_runtime_model(),
         "safe_queries": safe_queries,
         "attack_queries": attack_queries,
         "rate_limit": rate_summary,

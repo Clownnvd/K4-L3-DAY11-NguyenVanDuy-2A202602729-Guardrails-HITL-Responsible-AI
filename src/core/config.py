@@ -1,7 +1,8 @@
 """
 Lab 11 — Configuration, provider selection, API keys.
 
-  LLM_PROVIDER=gemini|openai
+  Blue: OPENROUTER_API_KEY, model khóa cứng liquid/lfm-2.5-2.6b.
+  Red + Red Advance: RED_TEAM_PROVIDER=gemini|openai.
 
 Mặc định (còn phát hành — Sep 2026):
   Gemini → gemini-3.5-flash
@@ -29,6 +30,11 @@ except ImportError:
 
 PROVIDER_GEMINI = "gemini"
 PROVIDER_OPENAI = "openai"
+PROVIDER_OPENROUTER = "openrouter"
+
+BLUE_MODEL = "liquid/lfm-2.5-2.6b"
+BLUE_RUNTIME_MODEL = "liquid/lfm-2.5-2.6b:free"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
@@ -59,8 +65,20 @@ DEMO_SECRET_NOTE = (
 # Egress: không gửi payload có secret/PII ra ngoài api.vinbank.example
 
 
-def get_llm_provider() -> str:
-    raw = os.environ.get("LLM_PROVIDER", "gemini").strip().lower()
+def get_blue_model() -> str:
+    """Return the assignment-locked Blue model; environment cannot override it."""
+    return BLUE_MODEL
+
+
+def get_blue_runtime_model() -> str:
+    """Return the currently routable OpenRouter slug for the locked Blue model."""
+    return BLUE_RUNTIME_MODEL
+
+
+def get_red_team_provider() -> str:
+    raw = os.environ.get(
+        "RED_TEAM_PROVIDER", os.environ.get("LLM_PROVIDER", "gemini")
+    ).strip().lower()
     if raw in {
         "openai",
         "gpt",
@@ -74,8 +92,8 @@ def get_llm_provider() -> str:
     return PROVIDER_GEMINI
 
 
-def get_model_name() -> str:
-    if get_llm_provider() == PROVIDER_OPENAI:
+def get_red_team_model() -> str:
+    if get_red_team_provider() == PROVIDER_OPENAI:
         return (
             os.environ.get("OPENAI_MODEL", DEFAULT_OPENAI_MODEL).strip()
             or DEFAULT_OPENAI_MODEL
@@ -86,13 +104,27 @@ def get_model_name() -> str:
     )
 
 
+def get_llm_provider() -> str:
+    """Backward-compatible alias for the Red/Red Advance provider."""
+    return get_red_team_provider()
+
+
+def get_model_name() -> str:
+    """Backward-compatible alias for the Red/Red Advance model."""
+    return get_red_team_model()
+
+
+def blue_provider_label() -> str:
+    return f"{PROVIDER_OPENROUTER}:{get_blue_runtime_model()}"
+
+
 def provider_label() -> str:
-    return f"{get_llm_provider()}:{get_model_name()}"
+    return f"{get_red_team_provider()}:{get_red_team_model()}"
 
 
 def is_harder_model() -> bool:
     """True if using the documented stretch models (or tougher)."""
-    m = get_model_name().lower()
+    m = get_red_team_model().lower()
     if m in {DEFAULT_GEMINI_MODEL.lower(), DEFAULT_OPENAI_MODEL.lower()}:
         return False
     hard = {
@@ -115,8 +147,11 @@ def is_harder_model() -> bool:
 
 
 def setup_api_key():
-    provider = get_llm_provider()
-    model = get_model_name()
+    if not os.environ.get("OPENROUTER_API_KEY", "").strip():
+        os.environ["OPENROUTER_API_KEY"] = input("Enter OpenRouter API Key for Blue: ").strip()
+
+    provider = get_red_team_provider()
+    model = get_red_team_model()
 
     if provider == PROVIDER_OPENAI:
         if not os.environ.get("OPENAI_API_KEY", "").strip():
@@ -127,6 +162,11 @@ def setup_api_key():
             os.environ["GOOGLE_API_KEY"] = input("Enter Google API Key: ").strip()
         os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "0"
         print(f"API ready — provider=gemini model={model}")
+
+    print(
+        f"Blue ready — provider=openrouter model={BLUE_RUNTIME_MODEL} "
+        f"(rubric={BLUE_MODEL}, locked)"
+    )
 
     if is_harder_model():
         print(

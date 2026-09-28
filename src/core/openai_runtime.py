@@ -5,10 +5,16 @@ Default model is gpt-4o-mini. Stretch harder target: gpt-5.6-luna (OPENAI_MODEL)
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from core.config import get_model_name
+from core.config import (
+    OPENROUTER_BASE_URL,
+    PROVIDER_OPENROUTER,
+    get_blue_runtime_model,
+    get_model_name,
+)
 
 
 @dataclass
@@ -25,12 +31,14 @@ class _MockInvocationContext:
 
 @dataclass
 class OpenAIRunner:
-    """Minimal runner: optional ADK-style plugins + OpenAI Chat Completions."""
+    """OpenAI-compatible runner for OpenAI or OpenRouter endpoints."""
 
     app_name: str
     model: str = field(default_factory=get_model_name)
     plugins: list = field(default_factory=list)
     provider: str = "openai"
+    base_url: str | None = None
+    api_key_env: str = "OPENAI_API_KEY"
     temperature: float = 0.4
     input_hooks: list[Callable[[str], str | None]] = field(default_factory=list)
     output_hooks: list[Callable[[str], str]] = field(default_factory=list)
@@ -38,7 +46,13 @@ class OpenAIRunner:
     def _client(self):
         from openai import OpenAI
 
-        return OpenAI()
+        api_key = os.environ.get(self.api_key_env, "").strip()
+        if not api_key:
+            raise RuntimeError(f"Missing required API key: {self.api_key_env}")
+        kwargs = {"api_key": api_key}
+        if self.base_url:
+            kwargs["base_url"] = self.base_url
+        return OpenAI(**kwargs)
 
     async def chat(self, agent: OpenAIAgent, user_message: str) -> str:
         for hook in self.input_hooks:
@@ -154,14 +168,43 @@ def create_openai_pair(
     input_hooks: list | None = None,
     output_hooks: list | None = None,
     temperature: float = 0.4,
+    model: str | None = None,
+    provider: str = "openai",
+    base_url: str | None = None,
+    api_key_env: str = "OPENAI_API_KEY",
 ) -> tuple[OpenAIAgent, OpenAIRunner]:
-    agent = OpenAIAgent(name=name, instruction=instruction)
+    agent = OpenAIAgent(name=name, instruction=instruction, provider=provider)
     runner = OpenAIRunner(
         app_name=app_name,
-        model=get_model_name(),
+        model=model or get_model_name(),
         plugins=list(plugins or []),
+        provider=provider,
+        base_url=base_url,
+        api_key_env=api_key_env,
         input_hooks=list(input_hooks or []),
         output_hooks=list(output_hooks or []),
         temperature=temperature,
     )
     return agent, runner
+
+
+def create_openrouter_pair(
+    *,
+    name: str,
+    instruction: str,
+    app_name: str,
+    plugins: list | None = None,
+    temperature: float = 0.4,
+) -> tuple[OpenAIAgent, OpenAIRunner]:
+    """Create the assignment-locked Blue agent through OpenRouter."""
+    return create_openai_pair(
+        name=name,
+        instruction=instruction,
+        app_name=app_name,
+        plugins=plugins,
+        temperature=temperature,
+        model=get_blue_runtime_model(),
+        provider=PROVIDER_OPENROUTER,
+        base_url=OPENROUTER_BASE_URL,
+        api_key_env="OPENROUTER_API_KEY",
+    )

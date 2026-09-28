@@ -73,7 +73,7 @@ CP1 Setup → CP2 Viết bộ lọc → CP3 Ghép pipeline + sinh results.json
 
 ### Mục tiêu
 
-Máy chạy được Python lab + có API key (Gemini **hoặc** OpenAI).
+Máy chạy được Python lab, có OpenRouter key cho Blue và một provider cho Red.
 
 ### Việc cần làm (từng bước)
 
@@ -82,11 +82,9 @@ Máy chạy được Python lab + có API key (Gemini **hoặc** OpenAI).
    (chi tiết + ví dụ trong [`SUBMISSION.md`](SUBMISSION.md)).  
 2. Clone repo (đã đổi tên) về máy; mở terminal tại **thư mục gốc** repo.
 3. Tạo & kích hoạt virtualenv, cài dependency.
-4. Copy `.env.example` → `.env`, chọn provider + dán API key:
-  - **Gemini (mặc định):** `LLM_PROVIDER=gemini` + `GOOGLE_API_KEY`  
-   Model lab: `gemini-3.5-flash`.  
-  - **OpenAI:** `LLM_PROVIDER=openai` + `OPENAI_API_KEY`  
-  Model lab: `gpt-4o-mini`.
+4. Copy `.env.example` → `.env`, rồi cấu hình hai tầng:
+  - **Blue:** `OPENROUTER_API_KEY`; model khóa cứng `liquid/lfm-2.5-2.6b`. OpenRouter hiện route cùng model qua slug `liquid/lfm-2.5-2.6b:free`.
+  - **Red + Red Advance:** `RED_TEAM_PROVIDER=gemini` + `GOOGLE_API_KEY`, hoặc `RED_TEAM_PROVIDER=openai` + `OPENAI_API_KEY`.
 5. (Tuỳ chọn) `STUDENT_ID=SE12345`.
 6. (Tuỳ chọn — khó hơn, điểm cộng):
   - Gemini: `GEMINI_MODEL=gemini-3.8-flash`  
@@ -98,7 +96,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 # Nếu bị chặn: Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 Copy-Item .env.example .env
-# Mở .env → chọn LLM_PROVIDER=gemini|openai và dán key tương ứng
+# Mở .env → điền OpenRouter cho Blue và provider riêng cho Red
 python -m pip install -U pip
 pip install -r requirements.txt
 ```
@@ -130,9 +128,8 @@ Khó hơn: `gemini-3.8-flash` / `gpt-5.6-luna`.
 ### Cách tự kiểm tra
 
 ```powershell
-# Gemini path
-python -c "import google.adk; print('Gemini/ADK sẵn sàng')"
-# Nếu dùng OpenAI: python -c "import openai; print('OpenAI sẵn sàng')"
+python -c "import openai; print('OpenRouter/OpenAI-compatible SDK sẵn sàng')"
+# Nếu Red = Gemini: python -c "import google.adk; print('Gemini/ADK sẵn sàng')"
 pytest tests/smoke -q
 ```
 
@@ -212,7 +209,7 @@ Mở các file dưới đây, đọc hướng dẫn trong file, rồi **điền 
 ```text
 User message
     → InputGuardrailPlugin   (injection + topic)
-    → LLM (Gemini)
+    → Blue LLM (OpenRouter · liquid/lfm-2.5-2.6b)
     → OutputGuardrailPlugin  (redact PII/secret)
     → User
 ```
@@ -489,7 +486,7 @@ cd ..
 Get-ChildItem .\outputs\*attack*.json
 ```
 
-> Cần `GOOGLE_API_KEY` thật — lệnh này gọi Gemini.  
+> Cần key thật cho provider đã chọn ở `RED_TEAM_PROVIDER`.
 > **Pass Signal:** 3 file `*attack`* xuất hiện; mở `attack_results.json` thấy `unsafe_attacks` và `guards_attacks`.
 
 Demo nhanh (optional): từ gốc repo  
@@ -598,4 +595,3 @@ K4-L3-DAY11-<HoVaTen>-<MSSV>-Guardrails-HITL-Responsible-AI/
     ├── unsafe_attack_result.json
     └── guards_attack_result.json
 ```
-

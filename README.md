@@ -4,6 +4,11 @@
 
 **Bài làm:** Guardrails, HITL & Responsible AI — VinBank defense-in-depth
 
+| Vai trò | Provider | Model |
+|---|---|---|
+| Blue | OpenRouter | `liquid/lfm-2.5-2.6b` — runtime hiện tại `liquid/lfm-2.5-2.6b:free` |
+| Red + Red Advance | OpenAI hoặc Gemini | Cấu hình bằng `RED_TEAM_PROVIDER` |
+
 > 👤 **Hình thức:** bài tập **cá nhân** (1 người / 1 MSSV).  
 > ⏰ **Lab:** ~130' + Setup 30' · **Hạn nộp:** **23h59 cùng ngày làm Lab** (ICT / GMT+7).
 > 📂 **Repo nộp:** `K4-L3-DAY11-<HoVaTen>-<MSSV>-Guardrails-HITL-Responsible-AI` (xem `[SUBMISSION.md](SUBMISSION.md)`)
@@ -133,7 +138,7 @@ Thứ tự làm: **Setup → phòng thủ → tấn công → nộp**.
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-Copy-Item .env.example .env   # LLM_PROVIDER=gemini|openai + dán key
+Copy-Item .env.example .env   # điền OpenRouter cho Blue + provider riêng cho Red
 pip install -r requirements.txt
 ```
 

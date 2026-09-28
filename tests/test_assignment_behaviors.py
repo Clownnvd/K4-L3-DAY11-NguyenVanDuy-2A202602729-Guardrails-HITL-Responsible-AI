@@ -97,3 +97,36 @@ def test_egress_is_exact_host_and_fail_closed(destination, payload, allowed):
     from assignment.pipeline import is_egress_allowed
 
     assert is_egress_allowed(destination, payload) is allowed
+
+
+def test_blue_model_is_locked_to_openrouter(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_MODEL", "attacker/overridden-model")
+    from core.config import BLUE_MODEL, get_blue_model
+
+    assert BLUE_MODEL == "liquid/lfm-2.5-2.6b"
+    assert get_blue_model() == BLUE_MODEL
+
+
+def test_blue_agent_uses_openrouter_independently_from_red(monkeypatch):
+    monkeypatch.setenv("RED_TEAM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-4o-mini")
+    from agents.agent import create_blue_agent
+    from core.config import BLUE_RUNTIME_MODEL, OPENROUTER_BASE_URL
+
+    agent, runner = create_blue_agent([])
+
+    assert agent.provider == "openrouter"
+    assert runner.provider == "openrouter"
+    assert runner.model == BLUE_RUNTIME_MODEL
+    assert runner.base_url == OPENROUTER_BASE_URL
+    assert runner.api_key_env == "OPENROUTER_API_KEY"
+
+
+def test_red_provider_remains_independent(monkeypatch):
+    monkeypatch.setenv("RED_TEAM_PROVIDER", "openai")
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    monkeypatch.setenv("OPENAI_MODEL", "gpt-4o-mini")
+    from core.config import get_red_team_model, get_red_team_provider
+
+    assert get_red_team_provider() == "openai"
+    assert get_red_team_model() == "gpt-4o-mini"

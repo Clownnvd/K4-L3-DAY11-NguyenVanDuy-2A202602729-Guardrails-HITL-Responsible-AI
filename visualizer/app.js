@@ -45,7 +45,7 @@ const stepOrder = ["rate", "input", "model", "output", "audit", "egress"];
 const stepDetails = {
   rate: { name: "Rate limiter", rule: "sliding_window(user_id)", purpose: "Giới hạn 10 request / 60 giây", baseDuration: 76 },
   input: { name: "Input guardrail", rule: "normalize → regex → topic_filter", purpose: "Chặn injection và câu hỏi ngoài ngân hàng", baseDuration: 124 },
-  model: { name: "LLM", rule: "guarded_generation", purpose: "Sinh phản hồi từ input đã được phép", baseDuration: 442 },
+  model: { name: "LLM", rule: "openrouter · liquid/lfm-2.5-2.6b:free", purpose: "Blue sinh phản hồi từ input đã được phép", baseDuration: 442 },
   output: { name: "Output guardrail", rule: "secret + PII patterns", purpose: "Redact dữ liệu nhạy cảm", baseDuration: 91 },
   audit: { name: "Audit & metrics", rule: "request_id + layer + latency", purpose: "Ghi evidence để điều tra và replay", baseDuration: 48 },
   egress: { name: "Egress policy", rule: "HTTPS + exact hostname", purpose: "Chỉ cho phép VinBank allowlist", baseDuration: 37 },
@@ -324,7 +324,7 @@ async function loadArtifacts() {
     $("#rateMetric").textContent = results.rate_limit.blocked;
     $("#auditMetric").textContent = audit.length;
     $("#artifactStatus").textContent = "Artifact đã sẵn sàng";
-    $("#artifactMeta").textContent = `${audit.length} audit records`;
+    $("#artifactMeta").textContent = "Blue: OpenRouter · LFM2.5-2.6B";
     $(".sidebar-footer").classList.add("is-ready");
   } catch (error) {
     $("#artifactStatus").textContent = "Chưa có artifact";
