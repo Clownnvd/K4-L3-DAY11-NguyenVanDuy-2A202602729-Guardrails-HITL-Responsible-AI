@@ -36,12 +36,12 @@ Slide trên lớp: [`Slide_Lab_Day11.html`](Slide_Lab_Day11.html).
 python src/main.py --part 2  # CP2: input/output guardrails
 python src/main.py --part 5  # CP3: sinh results, audit, metrics
 python src/main.py --part 1  # CP4: Red + Guards, cần API key
-python -m http.server 8765 --bind 127.0.0.1
+python scripts/serve_visualizer.py
 ```
 
-Sau đó mở `http://127.0.0.1:8765/visualizer/`. Giao diện dùng chính
-`outputs/results.json` và `outputs/audit_log.json`, đồng thời mô phỏng từng bước
-Rate limiter → Input guardrail → LLM → Output guardrail → Audit → Egress.
+Sau đó mở `http://127.0.0.1:8765/visualizer/`. Giao diện gọi pipeline Python
+thật qua API streaming, dùng Blue OpenRouter cho request hợp lệ và hiển thị từng
+bước Rate limiter → Input guardrail → LLM → Output guardrail → Audit → Egress.
 
 ---
 
