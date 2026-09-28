@@ -4,168 +4,181 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="light" />
-  <meta name="description" content="Trình mô phỏng trực quan luồng guardrail, audit và egress policy của chatbot VinBank trong Lab Day 11." />
-  <title>VinBank Guardrail Flow</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%232457e6'/%3E%3Cpath d='M17 18h10l5 25 5-25h10L38 50H26z' fill='white'/%3E%3C/svg%3E" />
+  <meta name="description" content="Giao diện hội thoại và trình quan sát luồng guardrail của chatbot VinBank." />
+  <title>VinBank AI · Guardrail Console</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2310a37f'/%3E%3Cpath d='M17 18h10l5 25 5-25h10L38 50H26z' fill='white'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true">V</span>
-      <div>
-        <p class="eyebrow">DAY 11 · CONTROLLED AGENT SECURITY</p>
-        <h1>VinBank Guardrail Flow</h1>
-      </div>
-    </div>
-    <div class="header-status" aria-label="Trạng thái dữ liệu">
-      <span class="status-dot" aria-hidden="true"></span>
-      <span id="dataStatus">Đang đọc artifact local…</span>
-    </div>
-  </header>
-
-  <main class="app-shell">
-    <section class="control-card panel" aria-labelledby="scenario-title">
-      <div class="panel-heading">
-        <div>
-          <p class="step-label">01 · CHỌN TÌNH HUỐNG</p>
-          <h2 id="scenario-title">Gửi một yêu cầu</h2>
-        </div>
-        <span class="keyboard-hint">Ctrl ↵</span>
+  <div class="app-shell">
+    <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
+    <aside class="sidebar" id="sidebar" aria-label="Điều hướng chính">
+      <div class="sidebar-brand">
+        <div class="brand-mark" aria-hidden="true">V</div>
+        <strong>VinBank AI</strong>
+        <button class="icon-button sidebar-close" id="sidebarClose" type="button" aria-label="Đóng thanh bên">×</button>
       </div>
 
-      <label for="scenario">Kịch bản mẫu</label>
-      <select id="scenario">
-        <option value="safe">Câu hỏi ngân hàng hợp lệ</option>
-        <option value="attack">Prompt injection</option>
-        <option value="rate">Spam vượt rate limit</option>
-        <option value="output">LLM trả về secret</option>
-        <option value="egress">Gửi dữ liệu ra domain lạ</option>
-      </select>
-
-      <label for="requestInput">Nội dung yêu cầu</label>
-      <textarea id="requestInput" rows="6" spellcheck="false"></textarea>
-
-      <div class="action-row">
-        <button class="button button-primary" id="runButton" type="button">
-          <span aria-hidden="true">▶</span> Chạy luồng
+      <nav class="primary-nav" aria-label="Tính năng">
+        <button class="nav-item is-active" id="newChatButton" type="button">
+          <span class="nav-icon" aria-hidden="true">✎</span><span>Cuộc trò chuyện mới</span>
         </button>
-        <button class="button button-secondary" id="resetButton" type="button">Đặt lại</button>
-      </div>
+        <button class="nav-item" data-open-tab="flow" type="button">
+          <span class="nav-icon" aria-hidden="true">⌘</span><span>Luồng kiểm thử</span>
+        </button>
+        <a class="nav-item" href="../outputs/results.json" target="_blank" rel="noreferrer">
+          <span class="nav-icon" aria-hidden="true">▤</span><span>Artifact</span>
+        </a>
+        <a class="nav-item" href="../outputs/lab_report.md" target="_blank" rel="noreferrer">
+          <span class="nav-icon" aria-hidden="true">□</span><span>Báo cáo</span>
+        </a>
+      </nav>
 
-      <div class="legend" aria-label="Chú giải trạng thái">
-        <span><i class="legend-dot neutral"></i> Chưa chạy</span>
-        <span><i class="legend-dot running"></i> Đang kiểm tra</span>
-        <span><i class="legend-dot pass"></i> Đi qua</span>
-        <span><i class="legend-dot block"></i> Bị chặn</span>
-      </div>
-    </section>
-
-    <section class="flow-card panel" aria-labelledby="flow-title">
-      <div class="panel-heading flow-heading">
-        <div>
-          <p class="step-label">02 · THEO DÕI QUYẾT ĐỊNH</p>
-          <h2 id="flow-title">Defense-in-depth pipeline</h2>
+      <section class="recent-section" aria-labelledby="recent-title">
+        <h2 id="recent-title">Kịch bản gần đây</h2>
+        <div class="recent-list">
+          <button type="button" data-scenario-shortcut="safe">Câu hỏi ngân hàng hợp lệ</button>
+          <button type="button" data-scenario-shortcut="attack">Prompt injection Unicode</button>
+          <button type="button" data-scenario-shortcut="rate">Spam vượt rate limit</button>
+          <button type="button" data-scenario-shortcut="output">Secret trong phản hồi</button>
+          <button type="button" data-scenario-shortcut="egress">Gửi dữ liệu ra domain lạ</button>
         </div>
-        <div class="run-summary" id="runSummary">Sẵn sàng</div>
-      </div>
+      </section>
 
-      <ol class="pipeline" id="pipeline" aria-label="Các lớp bảo vệ">
-        <li class="pipeline-step" data-step="rate">
-          <span class="step-index">01</span>
-          <span class="step-icon" aria-hidden="true">⌁</span>
-          <span class="step-copy"><strong>Rate limiter</strong><small>10 yêu cầu / 60 giây</small></span>
-          <span class="step-state">Chờ</span>
-        </li>
-        <li class="flow-line" aria-hidden="true"></li>
-        <li class="pipeline-step" data-step="input">
-          <span class="step-index">02</span>
-          <span class="step-icon" aria-hidden="true">⌕</span>
-          <span class="step-copy"><strong>Input guardrail</strong><small>Injection + chủ đề</small></span>
-          <span class="step-state">Chờ</span>
-        </li>
-        <li class="flow-line" aria-hidden="true"></li>
-        <li class="pipeline-step" data-step="model">
-          <span class="step-index">03</span>
-          <span class="step-icon" aria-hidden="true">✦</span>
-          <span class="step-copy"><strong>LLM</strong><small>Sinh phản hồi</small></span>
-          <span class="step-state">Chờ</span>
-        </li>
-        <li class="flow-line" aria-hidden="true"></li>
-        <li class="pipeline-step" data-step="output">
-          <span class="step-index">04</span>
-          <span class="step-icon" aria-hidden="true">◫</span>
-          <span class="step-copy"><strong>Output guardrail</strong><small>Redact secret + PII</small></span>
-          <span class="step-state">Chờ</span>
-        </li>
-        <li class="flow-line" aria-hidden="true"></li>
-        <li class="pipeline-step" data-step="audit">
-          <span class="step-index">05</span>
-          <span class="step-icon" aria-hidden="true">≣</span>
-          <span class="step-copy"><strong>Audit & metrics</strong><small>Lưu evidence</small></span>
-          <span class="step-state">Chờ</span>
-        </li>
-        <li class="flow-line" aria-hidden="true"></li>
-        <li class="pipeline-step" data-step="egress">
-          <span class="step-index">06</span>
-          <span class="step-icon" aria-hidden="true">↗</span>
-          <span class="step-copy"><strong>Egress policy</strong><small>HTTPS + exact host</small></span>
-          <span class="step-state">Chờ</span>
-        </li>
-      </ol>
-
-      <div class="decision-banner" id="decisionBanner" role="status" aria-live="polite">
-        <span class="decision-icon" aria-hidden="true">○</span>
-        <div><strong>Chưa có quyết định</strong><p>Chọn kịch bản rồi chạy để xem từng lớp xử lý.</p></div>
+      <div class="sidebar-footer">
+        <span class="artifact-indicator" aria-hidden="true"></span>
+        <div><strong id="artifactStatus">Đang đọc artifact…</strong><small id="artifactMeta">outputs/*.json</small></div>
       </div>
-    </section>
-
-    <aside class="evidence-card panel" aria-labelledby="evidence-title">
-      <div class="panel-heading">
-        <div>
-          <p class="step-label">03 · ĐỌC BẰNG CHỨNG</p>
-          <h2 id="evidence-title">Evidence inspector</h2>
-        </div>
-      </div>
-      <div class="evidence-empty" id="evidenceEmpty">
-        <span aria-hidden="true">◎</span>
-        <p>Mỗi quyết định sẽ hiện rule, input và kết quả tại đây.</p>
-      </div>
-      <dl class="evidence-list" id="evidenceList" hidden></dl>
     </aside>
 
-    <section class="metrics panel" aria-labelledby="metrics-title">
-      <div class="panel-heading compact">
-        <div>
-          <p class="step-label">ARTIFACT THẬT</p>
-          <h2 id="metrics-title">Kết quả lần chạy gần nhất</h2>
-        </div>
-      </div>
-      <div class="metric-grid">
-        <article><span>Safe queries</span><strong id="safeMetric">—</strong><small>không chặn nhầm</small></article>
-        <article><span>Attack blocked</span><strong id="attackMetric">—</strong><small>tối thiểu 5</small></article>
-        <article><span>Rate-limit blocked</span><strong id="rateMetric">—</strong><small>tối thiểu 1</small></article>
-        <article><span>Audit records</span><strong id="auditMetric">—</strong><small>có thể truy vết</small></article>
-      </div>
-    </section>
+    <main class="workspace">
+      <button class="icon-button menu-button" id="menuButton" type="button" aria-label="Mở thanh bên">☰</button>
 
-    <section class="event-panel panel" aria-labelledby="events-title">
-      <div class="panel-heading compact">
-        <div>
-          <p class="step-label">LIVE TRACE</p>
-          <h2 id="events-title">Nhật ký luồng hiện tại</h2>
-        </div>
-        <button class="text-button" id="clearLog" type="button">Xóa nhật ký</button>
+      <div class="mode-tabs" role="tablist" aria-label="Chế độ làm việc">
+        <button id="chatTab" role="tab" aria-selected="true" aria-controls="chatPanel" tabindex="0" data-tab="chat">Chat</button>
+        <button id="flowTab" role="tab" aria-selected="false" aria-controls="flowPanel" tabindex="-1" data-tab="flow">
+          <span aria-hidden="true">✦</span> Luồng chạy <span class="tab-badge" id="flowBadge" hidden>1</span>
+        </button>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Thời điểm</th><th>Lớp</th><th>Quyết định</th><th>Evidence</th></tr></thead>
-          <tbody id="eventRows"><tr class="empty-row"><td colspan="4">Chưa có sự kiện.</td></tr></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
 
+      <section class="chat-panel" id="chatPanel" role="tabpanel" aria-labelledby="chatTab">
+        <div class="chat-stage">
+          <div class="empty-chat" id="emptyChat">
+            <h1>Tôi có thể giúp gì cho anh?</h1>
+          </div>
+
+          <div class="conversation" id="conversation" hidden aria-live="polite">
+            <article class="message user-message">
+              <div class="message-avatar user-avatar" aria-hidden="true">D</div>
+              <div><p class="message-name">Anh</p><p id="userMessageText"></p></div>
+            </article>
+            <article class="message assistant-message">
+              <div class="message-avatar assistant-avatar" aria-hidden="true">V</div>
+              <div class="assistant-copy">
+                <p class="message-name">VinBank AI</p>
+                <div class="typing" id="typingState" role="status"><i></i><i></i><i></i><span class="sr-only">Đang kiểm tra qua các lớp bảo vệ</span></div>
+                <div id="assistantResult" hidden>
+                  <p id="assistantText"></p>
+                  <button class="trace-link" id="openTraceButton" type="button">Xem lớp đã xử lý <span aria-hidden="true">→</span></button>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="composer-zone">
+            <form class="composer" id="composerForm">
+              <label class="sr-only" for="requestInput">Nhập yêu cầu kiểm thử</label>
+              <textarea id="requestInput" rows="1" placeholder="Nhập yêu cầu kiểm thử" aria-describedby="composerHint"></textarea>
+              <div class="composer-actions">
+                <button class="round-button add-button" type="button" id="scenarioButton" aria-label="Chọn kịch bản" aria-expanded="false" aria-controls="scenarioMenu">+</button>
+                <div class="scenario-menu" id="scenarioMenu" hidden>
+                  <label for="scenario">Kịch bản kiểm thử</label>
+                  <select id="scenario">
+                    <option value="safe">Câu hỏi hợp lệ</option>
+                    <option value="attack">Prompt injection</option>
+                    <option value="rate">Vượt rate limit</option>
+                    <option value="output">Lộ secret ở output</option>
+                    <option value="egress">Domain egress lạ</option>
+                  </select>
+                </div>
+                <span class="scenario-label" id="scenarioLabel">Câu hỏi hợp lệ</span>
+                <span class="composer-spacer"></span>
+                <span class="model-label">Guarded mode</span>
+                <button class="send-button" id="sendButton" type="submit" aria-label="Gửi và chạy kiểm thử">↑</button>
+              </div>
+            </form>
+            <p class="composer-hint" id="composerHint">Nội dung được kiểm tra qua sáu lớp trước khi phản hồi.</p>
+            <div class="quick-actions" id="quickActions">
+              <button type="button" data-scenario-shortcut="safe"><span aria-hidden="true">▧</span> Câu hỏi an toàn</button>
+              <button type="button" data-scenario-shortcut="attack"><span aria-hidden="true">⌁</span> Thử injection</button>
+              <button type="button" data-scenario-shortcut="output"><span aria-hidden="true">◇</span> Thử lộ secret</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="flow-panel" id="flowPanel" role="tabpanel" aria-labelledby="flowTab" hidden>
+        <header class="flow-header">
+          <div>
+            <p class="overline">QUAN SÁT KIỂU LANGSMITH</p>
+            <h1>Luồng chạy</h1>
+            <p>Theo dõi yêu cầu đã đi qua, bị sửa hoặc bị chặn ở tầng nào.</p>
+          </div>
+          <div class="flow-header-actions">
+            <span class="run-status" id="runStatus"><i></i> Chưa chạy</span>
+            <button class="secondary-button" id="rerunButton" type="button">Chạy lại</button>
+          </div>
+        </header>
+
+        <div class="trace-layout">
+          <section class="runs-pane" aria-labelledby="runs-title">
+            <div class="pane-heading"><h2 id="runs-title">Runs</h2><span id="runCount">1 run</span></div>
+            <button class="root-run is-selected" type="button" data-inspect="root">
+              <span class="status-symbol idle" id="rootStatusIcon">○</span>
+              <span><strong>vinbank_guardrail_flow</strong><small id="rootRunMeta">Chưa có dữ liệu chạy</small></span>
+            </button>
+            <div class="run-tree" id="runTree">
+              <button type="button" data-inspect="rate"><span class="tree-line"></span><i class="status-symbol idle">○</i><span>rate_limiter</span><time>—</time></button>
+              <button type="button" data-inspect="input"><span class="tree-line"></span><i class="status-symbol idle">○</i><span>input_guardrail</span><time>—</time></button>
+              <button type="button" data-inspect="model"><span class="tree-line"></span><i class="status-symbol idle">○</i><span>llm</span><time>—</time></button>
+              <button type="button" data-inspect="output"><span class="tree-line"></span><i class="status-symbol idle">○</i><span>output_guardrail</span><time>—</time></button>
+              <button type="button" data-inspect="audit"><span class="tree-line"></span><i class="status-symbol idle">○</i><span>audit_metrics</span><time>—</time></button>
+              <button type="button" data-inspect="egress"><span class="tree-line"></span><i class="status-symbol idle">○</i><span>egress_policy</span><time>—</time></button>
+            </div>
+          </section>
+
+          <section class="waterfall-pane" aria-labelledby="waterfall-title">
+            <div class="pane-heading"><h2 id="waterfall-title">Timeline</h2><span id="timelineSummary">0 ms</span></div>
+            <div class="timeline-axis" aria-hidden="true"><span>0 ms</span><span>250</span><span>500</span><span>750</span><span>1.000 ms</span></div>
+            <ol class="trace-steps" id="traceSteps" aria-label="Các tầng kiểm tra">
+              <li data-step="rate"><button type="button" data-inspect="rate"><span class="trace-icon">⌁</span><span class="trace-name"><strong>Rate limiter</strong><small>Sliding window theo user</small></span><span class="trace-bar"><i></i></span><span class="trace-state">Chờ</span></button></li>
+              <li data-step="input"><button type="button" data-inspect="input"><span class="trace-icon">⌕</span><span class="trace-name"><strong>Input guardrail</strong><small>Injection + topic filter</small></span><span class="trace-bar"><i></i></span><span class="trace-state">Chờ</span></button></li>
+              <li data-step="model"><button type="button" data-inspect="model"><span class="trace-icon">✦</span><span class="trace-name"><strong>LLM</strong><small>Sinh phản hồi</small></span><span class="trace-bar"><i></i></span><span class="trace-state">Chờ</span></button></li>
+              <li data-step="output"><button type="button" data-inspect="output"><span class="trace-icon">◫</span><span class="trace-name"><strong>Output guardrail</strong><small>Redact secret + PII</small></span><span class="trace-bar"><i></i></span><span class="trace-state">Chờ</span></button></li>
+              <li data-step="audit"><button type="button" data-inspect="audit"><span class="trace-icon">≣</span><span class="trace-name"><strong>Audit & metrics</strong><small>Ghi evidence</small></span><span class="trace-bar"><i></i></span><span class="trace-state">Chờ</span></button></li>
+              <li data-step="egress"><button type="button" data-inspect="egress"><span class="trace-icon">↗</span><span class="trace-name"><strong>Egress policy</strong><small>HTTPS + exact host</small></span><span class="trace-bar"><i></i></span><span class="trace-state">Chờ</span></button></li>
+            </ol>
+          </section>
+
+          <aside class="inspector-pane" aria-labelledby="inspector-title">
+            <div class="pane-heading"><h2 id="inspector-title">Chi tiết</h2><span id="inspectorBadge">Idle</span></div>
+            <div class="inspector-empty" id="inspectorEmpty">
+              <div aria-hidden="true">◎</div><p>Chọn một tầng để xem input, rule và quyết định.</p>
+            </div>
+            <dl class="inspector-list" id="inspectorList" hidden></dl>
+          </aside>
+        </div>
+
+        <section class="artifact-strip" aria-labelledby="artifact-title">
+          <div><p class="overline">ARTIFACT THẬT</p><h2 id="artifact-title">Kết quả checkpoint gần nhất</h2></div>
+          <article><span>Safe</span><strong id="safeMetric">—</strong><small>không chặn nhầm</small></article>
+          <article><span>Attack</span><strong id="attackMetric">—</strong><small>đã bị chặn</small></article>
+          <article><span>Rate limit</span><strong id="rateMetric">—</strong><small>lần bị chặn</small></article>
+          <article><span>Audit</span><strong id="auditMetric">—</strong><small>bản ghi</small></article>
+        </section>
+      </section>
+    </main>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
